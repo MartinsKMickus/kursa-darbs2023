@@ -4,28 +4,34 @@ from matplotlib import pyplot as plt
 import numpy as np
 from scipy.io import wavfile
 import sounddevice as sd
+import scipy.signal
+import scipy.io.wavfile as wav
+from scipy import signal
 
 sample_rate = 44100  # Sample rate (samples per second)
 
 # Set parameters
-play_frequency = 19000.0  # Frequency of the sine wave in Hz
-rec_duration = 1.0
-wait_rec = 0
-play_duration = 0.5  # Duration of the audio signal in seconds
+play_frequency = 17000.0  # Frequency of the sine wave in Hz
+rec_duration = 0.25
+wait_rec = 1.0
+play_duration = 1.0  # Duration of the audio signal in seconds
 
 output_filename = "sine_wave.wav"  # Name of the output audio file
 
 current_number = 0
+
 # Generate signal
-def gen_signal(frequency, duration):
+def gen_signal(frequency = play_frequency, duration = play_duration):
     t = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
     signal = np.sin(2 * np.pi * frequency * t)
     # plt.plot(signal)
     # plt.show()
     return signal
 
+generated_signal = gen_signal(frequency=play_frequency, duration=play_duration)
+
 # Play signal
-def play_signal(signal, sr = sample_rate):
+def play_signal(signal = generated_signal, sr = sample_rate):
     sd.play(signal, sr)
     sd.wait()
 
@@ -56,16 +62,38 @@ def threading_recorder():
     print("Starting recording")
     save_audio(rec_signal(rec_duration), name=f"recorded_audio{current_number}.wav")
 
-for i in range(1, 10):
-    current_number = i
-    recording_thread = threading.Thread(target=threading_recorder)
-    recording_thread.start()
-    sleep(wait_rec)
-    play_signal(gen_signal(frequency=play_frequency, duration=play_duration))
-    recording_thread.join()
-    sleep(1)
+def apply_high_pass_filter(input_file, output_file, cutoff_frequency, sampling_rate):
+    sos = signal.butter(4, cutoff_frequency / (sampling_rate/2), 'high', output='sos', analog=True)
+    # w, h = signal.freqs(b, a)
+    data = np.asarray(load_file(filename=input_file))
+    filtered = signal.sosfilt(sos, data)
+    save_audio(signal=filtered, name=output_file)
+
+
+
+# sleep(2)
+# for i in range(1, 2):
+#     current_number = i
+#     recording_thread = threading.Thread(target=threading_recorder)
+#     recording_thread.start()
+#     sleep(wait_rec)
+#     play_signal(generated_signal)
+#     recording_thread.join()
+#     sleep(1)
     # sr, recorded = load_file(filename="recorded_audio.wav")
 
+
+# for i in range(1, 10):
+#     current_number = i
+#     playback_thread = threading.Thread(target=play_signal)
+#     playback_thread.start()
+#     sleep(wait_rec)
+#     save_audio(rec_signal(rec_duration), name=f"recorded_audio{current_number}.wav")
+#     sleep(1)
+
+for i in range(1, 10):
+    apply_high_pass_filter(input_file=f"recorded_audio{i}.wav", output_file=f"recorded_audio{i}.wav", cutoff_frequency=11000, sampling_rate=sample_rate)
+# playback_thread.join()
 # play_signal(signal=recorded, sr=sr)
 
 # # original = gen_signal(frequency=play_frequency, duration=play_duration)
