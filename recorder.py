@@ -12,9 +12,9 @@ sample_rate = 44100  # Sample rate (samples per second)
 
 # Set parameters
 play_frequency = 17000.0  # Frequency of the sine wave in Hz
-rec_duration = 0.25
-wait_rec = 1.0
-play_duration = 1.0  # Duration of the audio signal in seconds
+rec_duration = 3
+wait_rec = 1
+play_duration = 3.0  # Duration of the audio signal in seconds
 
 output_filename = "sine_wave.wav"  # Name of the output audio file
 
@@ -24,6 +24,7 @@ current_number = 0
 def gen_signal(frequency = play_frequency, duration = play_duration):
     t = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
     signal = np.sin(2 * np.pi * frequency * t)
+    signal = np.concatenate([signal,np.zeros(int(sample_rate*0.4))])
     # plt.plot(signal)
     # plt.show()
     return signal
@@ -41,13 +42,14 @@ def rec_signal(duration):
     return signal
 
 # Play and record at the same time
-def playrec_signal(signal):
-    signal = sd.playrec(signal, sample_rate, channels=2)
+def playrec_signal(signal = generated_signal):
+    signal = sd.playrec(signal, sample_rate, channels=1)
     sd.wait()
     return signal
 
 def save_audio(signal, name="recorded_audio.wav"):
     output_filename = name
+    signal = signal[int(-sample_rate*0.4):]
     wavfile.write(output_filename, sample_rate, signal)
 
 def load_file(filename):
@@ -70,16 +72,13 @@ def apply_high_pass_filter(input_file, output_file, cutoff_frequency, sampling_r
     save_audio(signal=filtered, name=output_file)
 
 
-
-# sleep(2)
-# for i in range(1, 2):
-#     current_number = i
-#     recording_thread = threading.Thread(target=threading_recorder)
-#     recording_thread.start()
-#     sleep(wait_rec)
-#     play_signal(generated_signal)
-#     recording_thread.join()
-#     sleep(1)
+sleep(4)
+for i in range(1, 5):
+    sleep(1) # Lai atskaņošanas un ieraksta ierīces iegūst miera stāvokli
+    print(f"Recording: {i}")
+    current_number = i
+    recording = playrec_signal()
+    save_audio(recording, name=f"recorded_audio{current_number}.wav")
     # sr, recorded = load_file(filename="recorded_audio.wav")
 
 
@@ -91,8 +90,8 @@ def apply_high_pass_filter(input_file, output_file, cutoff_frequency, sampling_r
 #     save_audio(rec_signal(rec_duration), name=f"recorded_audio{current_number}.wav")
 #     sleep(1)
 
-for i in range(1, 10):
-    apply_high_pass_filter(input_file=f"recorded_audio{i}.wav", output_file=f"recorded_audio{i}.wav", cutoff_frequency=11000, sampling_rate=sample_rate)
+# for i in range(1, 10):
+#     apply_high_pass_filter(input_file=f"recorded_audio{i}.wav", output_file=f"recorded_audio{i}.wav", cutoff_frequency=11000, sampling_rate=sample_rate)
 # playback_thread.join()
 # play_signal(signal=recorded, sr=sr)
 
