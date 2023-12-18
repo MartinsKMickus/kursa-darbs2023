@@ -10,12 +10,15 @@ import scipy.io.wavfile as wav
 from scipy import signal
 
 sample_rate = 44100  # Sample rate (samples per second)
+cut_off = 12000
 
 # Set parameters
 play_frequency = 17000.0  # Frequency of the sine wave in Hz
+# NETIEK IZMANTOTS
 rec_duration = 3
 wait_rec = 1
-play_duration = 3.0  # Duration of the audio signal in seconds
+# Skaņas signālam ar 2 sekundēm pietiks, lai izplatītos vienmērīgi telpā.
+play_duration = 2.0  # Duration of the audio signal in seconds
 
 output_filename = "sine_wave.wav"  # Name of the output audio file
 
@@ -25,6 +28,7 @@ current_number = 0
 def gen_signal(frequency = play_frequency, duration = play_duration):
     t = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
     signal = np.sin(2 * np.pi * frequency * t)
+    # Beigās signālam vajag klusumu 0.4s. Tas dod ~190ms atbalsi
     signal = np.concatenate([signal,np.zeros(int(sample_rate*0.4))])
     # plt.plot(signal)
     # plt.show()
@@ -50,8 +54,20 @@ def playrec_signal(signal = generated_signal):
 
 def save_audio(signal, name="recorded_audio.wav"):
     output_filename = name
-    signal = signal[int(-sample_rate*0.4):]
+    # Atbalsij esot aptuveni 190ms. Lai neiekļautu oriģinālo signālu var ņemt 180ms
+    signal = signal[int(-sample_rate*0.180):]
+    # current_peak = np.max(np.abs(signal))
+    # signal = (signal / current_peak)
+    # Saglabā signālu, jo problēmas ja nesaglabā
     wavfile.write(output_filename, sample_rate, signal)
+    # Noņemt zemās frekvences
+    sample_rate1, data = scipy.io.wavfile.read(output_filename)
+    filtered = highpass(data, cut_off, sample_rate1)
+    # Normalizē
+    current_peak = np.max(np.abs(filtered))
+    filtered = (filtered / current_peak)
+    wavfile.write(output_filename, sample_rate1, filtered)
+
 
 def load_file(filename):
     return wavfile.read(filename)
@@ -65,12 +81,10 @@ def threading_recorder():
     print("Starting recording")
     save_audio(rec_signal(rec_duration), name=f"recorded_audio{current_number}.wav")
 
-def apply_high_pass_filter(input_file, output_file, cutoff_frequency, sampling_rate):
-    sos = signal.butter(4, cutoff_frequency / (sampling_rate/2), 'high', output='sos', analog=True)
-    # w, h = signal.freqs(b, a)
-    data = np.asarray(load_file(filename=input_file))
-    filtered = signal.sosfilt(sos, data)
-    save_audio(signal=filtered, name=output_file)
+def highpass(data: np.ndarray, cutoff: float = 12000, sample_rate: float = sample_rate, poles: int = 5):
+    sos = scipy.signal.butter(poles, cutoff, 'highpass', fs=sample_rate, output='sos')
+    filtered_data = scipy.signal.sosfiltfilt(sos, data)
+    return filtered_data
 
 print(sys.argv[1])
 sleep(4)
