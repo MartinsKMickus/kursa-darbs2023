@@ -1,3 +1,4 @@
+import sys
 import threading
 from time import sleep
 from matplotlib import pyplot as plt
@@ -71,14 +72,14 @@ def apply_high_pass_filter(input_file, output_file, cutoff_frequency, sampling_r
     filtered = signal.sosfilt(sos, data)
     save_audio(signal=filtered, name=output_file)
 
-
+print(sys.argv[1])
 sleep(4)
-for i in range(1, 5):
+for i in range(1, 9):
     sleep(1) # Lai atskaņošanas un ieraksta ierīces iegūst miera stāvokli
     print(f"Recording: {i}")
     current_number = i
     recording = playrec_signal()
-    save_audio(recording, name=f"recorded_audio{current_number}.wav")
+    save_audio(recording, name=f"recorded_{sys.argv[1]}{current_number}.wav")
     # sr, recorded = load_file(filename="recorded_audio.wav")
 
 
